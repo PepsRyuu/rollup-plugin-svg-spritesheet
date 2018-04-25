@@ -1,0 +1,10 @@
+{
+  "name": "rollup-plugin-svg-spritesheet",
+  "version": "0.0.1",
+  "main": "index.js",
+  "author": "Paul Sweeney",
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2"
+  }
+}

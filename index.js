@@ -13,7 +13,7 @@ let cheerio = require('cheerio');
  * @param {String} code
  * @return {Object}
  */
-function parse (options, name, code) {
+function parse (options, id, name, code) {
     // Load the current SVG and create a target placeholder.
     let svg = cheerio.load(code, { xmlMode: true })('svg');
 
@@ -51,18 +51,27 @@ function parse (options, name, code) {
         });
     }
 
-    if (options && options.cleanSymbols) {
-        options.cleanSymbols.forEach(prop => {
-            symbolOutput = symbolOutput.replace(
-                new RegExp(`\\s+${prop}="(.*?)"`, 'g'),
-                ''
-            );
-        });
-    }
+    let extraAttrs = '';
 
-    let extraAttrs = Object.entries((options && options.symbolAttrs) || {}).map(([key, value]) => {
-        return `${key}="${value}"`
-    }).join(' ');
+    if (options) {
+        if (options.cleanSymbols) {
+            let cleanSymbols = (typeof options.cleanSymbols === 'function'? options.cleanSymbols(id) : options.cleanSymbols) || [];
+
+            cleanSymbols.forEach(prop => {
+                symbolOutput = symbolOutput.replace(
+                    new RegExp(`\\s+${prop}="(.*?)"`, 'g'),
+                    ''
+                );
+            });
+        }
+
+        if (options.symbolAttrs) {
+            let symbolAttrs = (typeof options.symbolAttrs === 'function'? options.symbolAttrs(id) : options.symbolAttrs) || {};
+            extraAttrs = Object.entries((symbolAttrs) || {}).map(([key, value]) => {
+                return `${key}="${value}"`
+            }).join(' ');
+        }
+    }
 
     symbolOutput = (`
         <symbol id="${symbolId}" viewBox="${symbolViewBox}" ${extraAttrs}>
@@ -97,7 +106,7 @@ module.exports = function (options) {
                 return;
             }
 
-            let { symbol, defs } = parse(options, path.parse(id).name, code);
+            let { symbol, defs } = parse(options, id, path.parse(id).name, code);
             storedSymbols[id] = symbol;
 
             if (defs) {

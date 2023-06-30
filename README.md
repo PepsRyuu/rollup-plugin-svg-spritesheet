@@ -35,5 +35,5 @@ export function MyIcon () {
 ## Options
 
 * **file**: String, Specify the filename for the output. This will following your Rollup config's `assetFileNames` pattern.
-* **cleanSymbols**: Array of strings, Clear the symbols of these attributes prior to adding to spritesheet. eg. `['fill', 'style']`
-* **symbolAttrs**: Object, Additional attribute and values to add to each symbol. eg. `{ fill: 'currentColor' }`
+* **cleanSymbols**: Array of strings or function, Clear the symbols of these attributes prior to adding to spritesheet. eg. `['fill', 'style']`. Can also be a function, receiving `id` returning an array.
+* **symbolAttrs**: Object or function, Additional attribute and values to add to each symbol. eg. `{ fill: 'currentColor' }`. Can also be a function, receiving `id` returning an object.

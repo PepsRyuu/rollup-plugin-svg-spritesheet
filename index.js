@@ -1,4 +1,3 @@
-let fs = require('fs');
 let path = require('path');
 let cheerio = require('cheerio');
 
@@ -14,7 +13,7 @@ let cheerio = require('cheerio');
  * @param {String} code
  * @return {Object}
  */
-function parse (name, code) {
+function parse (options, name, code) {
     // Load the current SVG and create a target placeholder.
     let svg = cheerio.load(code, { xmlMode: true })('svg');
 
@@ -29,8 +28,6 @@ function parse (name, code) {
     // Root properties for the symbol. More or less
     // just copying them over from the original SVG tag.
     let symbolId = '__svg__spritesheet__' + name;
-    let symbolWidth = svg.attr('width');
-    let symbolHeight = svg.attr('height');
     let symbolViewBox = svg.attr('viewBox');
 
     // We need to move the defs out of their original location
@@ -54,8 +51,21 @@ function parse (name, code) {
         });
     }
 
+    if (options && options.cleanSymbols) {
+        options.cleanSymbols.forEach(prop => {
+            symbolOutput = symbolOutput.replace(
+                new RegExp(`\\s+${prop}="(.*?)"`, 'g'),
+                ''
+            );
+        });
+    }
+
+    let extraAttrs = Object.entries((options && options.symbolAttrs) || {}).map(([key, value]) => {
+        return `${key}="${value}"`
+    }).join(' ');
+
     symbolOutput = (`
-        <symbol id="${symbolId}" height="${symbolHeight}" width="${symbolWidth}" viewBox="${symbolViewBox}">
+        <symbol id="${symbolId}" viewBox="${symbolViewBox}" ${extraAttrs}>
             ${symbolOutput}
         </symbol>
     `);
@@ -74,6 +84,7 @@ module.exports = function (options) {
     let storedSymbols = {};
     let changed = false;
     let output;
+    let fileRef;
 
     return {
         /**
@@ -81,12 +92,12 @@ module.exports = function (options) {
          *
          * @method transform
          */ 
-        transform: (code, id) => {
+        transform (code, id) {
             if (path.extname(id) !== '.svg') {
                 return;
             }
 
-            let { symbol, defs } = parse(path.parse(id).name, code);
+            let { symbol, defs } = parse(options, path.parse(id).name, code);
             storedSymbols[id] = symbol;
 
             if (defs) {
@@ -97,18 +108,14 @@ module.exports = function (options) {
 
             return {
                 code: `export default {
-                    id: '${symbol.id}'
+                    id: '${symbol.id}',
+                    file: import.meta.SVG_SPRITESHEET_URL
                 }`,
                 map: {mappings: ''}
             }
         },
 
-        /**
-         * Call the output function with the final spritesheet.
-         *
-         * @method ongenerate
-         */
-        ongenerate: () => {
+        renderStart() {
             if (changed) {
                 output = (`
                     <svg xmlns="http://www.w3.org/2000/svg">
@@ -126,7 +133,17 @@ module.exports = function (options) {
                 changed = false;
             }
 
-            options.output(output);
+            fileRef = this.emitFile({
+                type: 'asset',
+                name: options.file,
+                source: output
+            });
+        },
+
+        resolveImportMeta(property) {
+            if (property === 'SVG_SPRITESHEET_URL') {
+                return `"${this.getFileName(fileRef)}"`
+            }
         }
     };
 }

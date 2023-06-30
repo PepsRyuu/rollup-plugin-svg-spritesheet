@@ -12,10 +12,7 @@ rollup({
     ...
     plugins: [
         svg_spritesheet({
-            output: code => {
-                // Do something with the generated code
-                // eg. write to "spritesheet.svg"
-            }
+            file: 'spritesheet.svg'
         }),
     ]
 });
@@ -29,23 +26,14 @@ import SVG from './svgs/MyIcon.svg';
 export function MyIcon () {
     return (
         <svg>
-            <use xlinkHref={'#' + SVG.id} />
+            <use xlinkHref={svg.file + '#' + SVG.id} />
         </svg>
     );
 }
 ```
 
-The above example assumes that you're externally loading the spritesheet and attaching it to the DOM.
-You can specify the file using the `use` tag, but if you want to support IE11, you have to use the approach below:
+## Options
 
-```
-let xhr = new XMLHttpRequest();
-xhr.open('GET', 'spritesheet.svg', true);
-xhr.onload = () => {
-    let parser = new DOMParser();
-    let doc = parser.parseFromString(xhr.responseText, 'image/svg+xml');
-    document.body.insertBefore(doc.documentElement, document.body.firstChild);
-};
-xhr.send(); 
-
-```
+* **file**: String, Specify the filename for the output. This will following your Rollup config's `assetFileNames` pattern.
+* **cleanSymbols**: Array of strings, Clear the symbols of these attributes prior to adding to spritesheet. eg. `['fill', 'style']`
+* **symbolAttrs**: Object, Additional attribute and values to add to each symbol. eg. `{ fill: 'currentColor' }`
